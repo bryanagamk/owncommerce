@@ -86,6 +86,56 @@ func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*Tenant, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
+type UpdateStoreInput struct {
+	Name         *string
+	Description  *string
+	ContactEmail *string
+	ContactPhone *string
+	Address      *string
+	City         *string
+	Province     *string
+	PostalCode   *string
+	LogoURL      *string
+}
+
+func (s *Service) UpdateStore(ctx context.Context, id uuid.UUID, input UpdateStoreInput) (*Tenant, error) {
+	t, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if input.Name != nil {
+		t.Name = *input.Name
+	}
+	if input.Description != nil {
+		t.Description = *input.Description
+	}
+	if input.ContactEmail != nil {
+		t.ContactEmail = *input.ContactEmail
+	}
+	if input.ContactPhone != nil {
+		t.ContactPhone = *input.ContactPhone
+	}
+	if input.Address != nil {
+		t.Address = *input.Address
+	}
+	if input.City != nil {
+		t.City = *input.City
+	}
+	if input.Province != nil {
+		t.Province = *input.Province
+	}
+	if input.PostalCode != nil {
+		t.PostalCode = *input.PostalCode
+	}
+	if input.LogoURL != nil {
+		t.LogoURL = *input.LogoURL
+	}
+	if err := s.repo.Update(ctx, t); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
 func (s *Service) BuildSubdomain(slug string) string {
 	return fmt.Sprintf("%s.%s", slug, s.platformDomain)
 }

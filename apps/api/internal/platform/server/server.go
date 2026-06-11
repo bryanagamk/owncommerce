@@ -19,7 +19,7 @@ func New() *fiber.App {
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "*",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Tenant-Slug, X-Tenant-ID",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Tenant-Slug, X-Tenant-ID, X-Cart-Session",
 		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowCredentials: false,
 	}))

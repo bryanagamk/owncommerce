@@ -92,7 +92,8 @@ prompt/            → Dokumentasi produk & rencana
 
 ## Manual Testing
 
-Lihat [docs/testing-fase0.md](./docs/testing-fase0.md) untuk panduan testing Phase 0.
+- [docs/testing-fase0.md](./docs/testing-fase0.md) — Auth, Tenant, IAM, Audit
+- [docs/testing-fase1.md](./docs/testing-fase1.md) — Produk, Cart, Checkout, Midtrans, Order
 
 ## Perintah Berguna
 

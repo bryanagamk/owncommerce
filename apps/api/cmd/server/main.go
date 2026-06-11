@@ -6,6 +6,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/agamtech/owncommerce/apps/api/internal/commerce/cart"
+	"github.com/agamtech/owncommerce/apps/api/internal/commerce/category"
+	"github.com/agamtech/owncommerce/apps/api/internal/commerce/customer"
+	"github.com/agamtech/owncommerce/apps/api/internal/commerce/order"
+	"github.com/agamtech/owncommerce/apps/api/internal/commerce/payment"
+	"github.com/agamtech/owncommerce/apps/api/internal/commerce/product"
 	"github.com/agamtech/owncommerce/apps/api/internal/config"
 	"github.com/agamtech/owncommerce/apps/api/internal/core/audit"
 	"github.com/agamtech/owncommerce/apps/api/internal/core/auth"
@@ -36,7 +42,8 @@ func main() {
 		log.Fatalf("seed: %v", err)
 	}
 
-	if _, err := storage.NewLocalStorage(cfg.StoragePath); err != nil {
+	store, err := storage.NewLocalStorage(cfg.StoragePath)
+	if err != nil {
 		log.Fatalf("storage: %v", err)
 	}
 
@@ -49,19 +56,43 @@ func main() {
 	jwtManager := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTAccessExpiry, cfg.JWTRefreshExpiry)
 	authSvc := auth.NewService(authRepo, jwtManager, tenantSvc, iamRepo, auditSvc)
 
+	categoryRepo := category.NewRepository(db)
+	categorySvc := category.NewService(categoryRepo)
+	productRepo := product.NewRepository(db)
+	productSvc := product.NewService(productRepo, store, cfg.AppBaseURL)
+	customerRepo := customer.NewRepository(db)
+	customerSvc := customer.NewService(customerRepo, jwtManager)
+	cartRepo := cart.NewRepository(db)
+	cartSvc := cart.NewService(cartRepo, productRepo)
+	orderRepo := order.NewRepository(db)
+	orderSvc := order.NewService(orderRepo, cartRepo, productRepo)
+	paymentRepo := payment.NewRepository(db)
+	midtransClient := payment.NewMidtransClient(payment.MidtransConfig{
+		ServerKey:    cfg.MidtransServerKey,
+		ClientKey:    cfg.MidtransClientKey,
+		IsProduction: cfg.MidtransIsProduction,
+	})
+	paymentSvc := payment.NewService(paymentRepo, orderRepo, productRepo, midtransClient)
+
 	authMiddleware := middleware.NewAuthMiddleware(jwtManager, iamRepo)
 	tenantMiddleware := middleware.NewTenantMiddleware(tenantSvc)
+	customerMiddleware := middleware.NewCustomerAuthMiddleware(jwtManager)
 
 	app := server.New()
 	server.RegisterRoutes(app, server.Handlers{
-		Health: handler.NewHealthHandler(db),
-		Auth:   handler.NewAuthHandler(authSvc),
-		Tenant: handler.NewTenantHandler(tenantSvc, tenantRepo),
-		Audit:  handler.NewAuditHandler(auditSvc),
-		IAM:    handler.NewIAMHandler(iamRepo),
+		Health:     handler.NewHealthHandler(db),
+		Auth:       handler.NewAuthHandler(authSvc),
+		Tenant:     handler.NewTenantHandler(tenantSvc, tenantRepo),
+		Audit:      handler.NewAuditHandler(auditSvc),
+		IAM:        handler.NewIAMHandler(iamRepo),
+		Merchant:   handler.NewMerchantHandler(tenantSvc, categorySvc, productSvc, orderSvc),
+		Storefront: handler.NewStorefrontHandler(tenantSvc, categorySvc, productSvc, customerSvc, cartSvc, orderSvc, paymentSvc),
+		Payment:    handler.NewPaymentHandler(paymentSvc),
+		File:       handler.NewFileHandler(store),
 	}, server.Middlewares{
-		Auth:   authMiddleware,
-		Tenant: tenantMiddleware,
+		Auth:     authMiddleware,
+		Tenant:   tenantMiddleware,
+		Customer: customerMiddleware,
 	})
 
 	go func() {

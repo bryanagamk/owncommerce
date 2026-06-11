@@ -12,7 +12,8 @@
 | **Target** | UMKM, brand lokal, seller Shopee/TikTok Shop/Lazada |
 | **Arsitektur** | Multi-tenant shared DB + shared schema (`tenant_id` di semua data) |
 | **Backend** | Go + Fiber + GORM + PostgreSQL + Redis + Asynq |
-| **Frontend** | Monorepo: `web` (storefront), `seller` (merchant), `superadmin` |
+| **Frontend** | React + Vite + TypeScript — `web`, `seller`, `superadmin` |
+| **UI Library** | Ant Design 5 — tema putih dominan, clean & minimal |
 | **File Storage** | Local storage (filesystem server) |
 | **Hosting** | VPS sendiri (Docker) |
 | **CI/CD** | GitHub Actions → automated deploy ke VPS |
@@ -29,6 +30,7 @@
 3. **Modular monolith** — modul jelas, boundary API internal, siap dipecah nanti.
 4. **Ship early, iterate** — merchant bisa jualan online dalam 8–12 minggu (MVP).
 5. **Feature flag + subscription** — batasi fitur per paket sejak awal, meski paket awal masih sederhana.
+6. **API-first, UI mengikuti** — backend stabil dulu, frontend React + Ant Design menyusul (Phase 1B).
 
 ---
 
@@ -39,13 +41,17 @@ gantt
     title OwnCommerce Development Roadmap
     dateFormat YYYY-MM
     section Phase 0
-    Foundation & Infra           :p0, 2026-06, 4w
-    section Phase 1
-    MVP Core Commerce            :p1, after p0, 8w
-    section Phase 2
-    SaaS Platform Layer          :p2, after p1, 6w
+    Foundation & API             :p0, 2026-06, 4w
+    section Phase 1A
+    MVP Commerce API             :p1a, after p0, 8w
+    section Phase 1B
+    Frontend MVP seller+web      :p1b, after p1a, 6w
+    section Phase 2A
+    SaaS Platform API            :p2a, after p1b, 6w
+    section Phase 2B
+    Super Admin UI               :p2b, after p2a, 4w
     section Phase 3
-    Growth Features              :p3, after p2, 8w
+    Growth Features              :p3, after p2b, 8w
     section Phase 4
     Omnichannel (Future)         :p4, after p3, 12w
 ```
@@ -63,12 +69,12 @@ gantt
 ```
 owncommerce/
 ├── apps/
-│   ├── web/          → Next.js (storefront)
-│   ├── seller/       → Next.js (merchant dashboard)
-│   ├── superadmin/   → Next.js (internal)
+│   ├── web/          → React + Vite (storefront customer)
+│   ├── seller/       → React + Vite (merchant dashboard)
+│   ├── superadmin/   → React + Vite (internal platform)
 │   └── api/          → Go Fiber
 ├── packages/
-│   ├── ui/           → Design system (shadcn/ui)
+│   ├── ui/           → Ant Design theme, layout, shared components
 │   ├── types/        → Shared TypeScript types
 │   ├── sdk/          → API client untuk frontend
 │   └── shared/       → Utils, constants
@@ -132,9 +138,11 @@ Prioritas implementasi:
 
 ---
 
-## Phase 1: MVP Core Commerce (Minggu 5–12)
+## Phase 1A: MVP Core Commerce — API (Minggu 5–12)
 
-**Tujuan:** Merchant bisa daftar, tambah produk, customer bisa beli, merchant kelola pesanan.
+**Tujuan:** Backend siap — merchant bisa daftar, tambah produk, customer bisa beli, merchant kelola pesanan via API.
+
+> **Status:** Backend API selesai. Lanjut ke Phase 1B (frontend).
 
 ### 1.1 Merchant Onboarding Flow
 
@@ -144,58 +152,157 @@ Daftar → Buat Tenant → Pilih Subdomain → Setup Toko Dasar → Dashboard
 
 **Fitur:**
 
-- [ ] Registrasi merchant owner
-- [ ] Auto-provision subdomain (`toko.owncommerce.id`)
-- [ ] Store settings (nama, logo, deskripsi, kontak)
-- [ ] Onboarding wizard
+- [x] Registrasi merchant owner (Phase 0)
+- [x] Auto-provision subdomain (`toko.localhost` di dev)
+- [x] Store settings API (nama, deskripsi, kontak, alamat)
+- [ ] Onboarding wizard → Phase 1B (`seller`)
 
 ### 1.2 Product & Catalog (Merchant Dashboard)
 
-- [ ] CRUD produk (nama, deskripsi, harga, gambar, SKU)
-- [ ] Kategori (hierarki 1 level dulu)
-- [ ] Upload gambar → local storage
-- [ ] Status produk (draft, active, archived)
-- [ ] Inventory dasar (stock quantity, low stock alert)
+- [x] CRUD produk (nama, deskripsi, harga, gambar, SKU)
+- [x] Kategori (hierarki 1 level)
+- [x] Upload gambar → local storage
+- [x] Status produk (draft, active, archived)
+- [x] Inventory dasar (stock quantity, low stock threshold)
 
 ### 1.3 Storefront (Customer-facing)
 
-- [ ] Homepage (hero, featured products)
-- [ ] Product catalog + filter kategori
-- [ ] Product detail
-- [ ] Search produk (PostgreSQL full-text dulu)
-- [ ] Responsive mobile-first
+- [x] Homepage API (featured products)
+- [x] Product catalog + filter kategori
+- [x] Product detail (by slug)
+- [x] Search produk (ILIKE)
+- [ ] Responsive mobile-first → Phase 1B (`web`)
 
 ### 1.4 Cart & Checkout
 
-- [ ] Guest cart (session/cookie) + logged-in cart
-- [ ] Checkout: alamat, metode pengiriman, ringkasan
-- [ ] Order creation (status: `pending_payment`)
-- [ ] Integrasi Midtrans Snap (pembayaran langsung di MVP)
-- [ ] Webhook handler Midtrans (update status order otomatis)
-- [ ] Halaman payment success / failed
-- [ ] Order confirmation page
+- [x] Guest cart (`X-Cart-Session`) + logged-in cart
+- [x] Checkout: alamat, shipping cost, ringkasan
+- [x] Order creation (status: `pending_payment`)
+- [x] Integrasi Midtrans Snap API
+- [x] Webhook handler Midtrans
+- [ ] Halaman payment success / failed → Phase 1B (`web`)
+- [x] Order detail API (konfirmasi via API)
 
 ### 1.5 Order Management (Merchant)
 
-- [ ] Daftar pesanan + filter status
-- [ ] Detail pesanan
-- [ ] Update status (processing → shipped → completed)
-- [ ] Cancel order
+- [x] Daftar pesanan + filter status
+- [x] Detail pesanan
+- [x] Update status (processing → shipped → completed)
+- [x] Cancel order
 
 ### 1.6 Customer Account (Storefront)
 
-- [ ] Registrasi & login customer
-- [ ] Profil & alamat pengiriman
-- [ ] Riwayat pesanan
-- [ ] Tracking status pesanan
+- [x] Registrasi & login customer (per tenant)
+- [x] Profil customer (`/storefront/me`)
+- [x] Alamat pengiriman (create, list)
+- [x] Riwayat pesanan
+- [x] Tracking status pesanan (via order detail)
 
-**MVP Exit Criteria:**
+**Phase 1A Exit Criteria:**
 
-> Merchant bisa daftar, setup toko, tambah produk, customer bisa browse → cart → checkout → bayar via Midtrans → merchant proses pesanan.
+> [x] Semua flow commerce bisa diuji via API (curl / Postman). Lihat `docs/testing-fase1.md`.
 
 ---
 
-## Phase 2: SaaS Platform Layer (Minggu 13–18)
+## Phase 1B: Frontend MVP — `seller` + `web` (Minggu 13–18)
+
+**Tujuan:** UI end-to-end — merchant kelola toko lewat dashboard, customer belanja lewat storefront.
+
+**Tech:** React 18 + Vite + TypeScript + Ant Design 5 + React Router
+
+### 1B.0 Design System & Shared Packages
+
+Setup fondasi UI di `packages/ui` sebelum halaman aplikasi.
+
+**Prinsip visual** (referensi: clean dashboard, dominan putih):
+
+| Elemen | Spesifikasi |
+|---|---|
+| Background utama | `#FFFFFF` / `#FAFAFA` |
+| Sidebar | Putih, border kanan tipis `#F0F0F0` |
+| Card | Putih, border `#F0F0F0`, radius 8–12px, shadow minimal |
+| Teks utama | `#1A1A1A` / `#262626` |
+| Teks sekunder | `#8C8C8C` |
+| Aksen / primary | `#1677FF` (Ant Design default blue) |
+| Hero banner | Dark gradient (kontras) — opsional di dashboard |
+| Typography | System / Inter — clean sans-serif |
+| Spacing | Luas, breathable — padding 24–32px di content area |
+
+**Deliverables:**
+
+- [ ] `packages/ui` — Ant Design `ConfigProvider` + custom theme token
+- [ ] `packages/ui` — `AppLayout` (sidebar + header + content) seperti referensi
+- [ ] `packages/ui` — shared components: `PageHeader`, `EmptyState`, `Loading`
+- [ ] `packages/sdk` — typed API client (auth, merchant, storefront)
+- [ ] `packages/types` — shared TypeScript interfaces dari API response
+
+### 1B.1 Merchant Dashboard (`apps/seller`)
+
+Layout: sidebar kiri + content area kanan (mirip referensi Sell Bridge).
+
+| Halaman | Route | Fitur |
+|---|---|---|
+| Login / Register | `/login`, `/register` | Form Ant Design, JWT storage |
+| Dashboard | `/` | Ringkasan: total order, produk aktif, low stock |
+| Store Settings | `/settings` | Update profil toko |
+| Categories | `/categories` | Table + modal CRUD |
+| Products | `/products` | Table + form create/edit + upload gambar |
+| Product Detail | `/products/:id` | Edit produk + inventory |
+| Orders | `/orders` | Table filter status |
+| Order Detail | `/orders/:id` | Detail + update status |
+
+**Deliverables:**
+
+- [ ] Setup Vite + React + TypeScript + Ant Design
+- [ ] Auth flow (login, register, token refresh, protected routes)
+- [ ] Sidebar navigation + layout responsif (collapse di mobile)
+- [ ] CRUD kategori & produk
+- [ ] Upload gambar produk
+- [ ] Daftar & kelola pesanan
+- [ ] Onboarding wizard setelah register
+
+### 1B.2 Storefront (`apps/web`)
+
+Layout: header toko + content — tetap clean putih, fokus produk (bukan sidebar admin).
+
+| Halaman | Route | Fitur |
+|---|---|---|
+| Home | `/` | Hero toko + featured products |
+| Catalog | `/products` | Grid produk + filter kategori + search |
+| Product Detail | `/products/:slug` | Gambar, harga, deskripsi, add to cart |
+| Cart | `/cart` | List item, update qty |
+| Checkout | `/checkout` | Form alamat + ringkasan |
+| Payment | `/payment/:orderId` | Midtrans Snap embed |
+| Success / Failed | `/payment/success`, `/payment/failed` | Konfirmasi pembayaran |
+| Login / Register | `/account/login`, `/account/register` | Customer auth per tenant |
+| My Orders | `/account/orders` | Riwayat & tracking |
+| Profile | `/account/profile` | Data customer & alamat |
+
+**Deliverables:**
+
+- [ ] Setup Vite + React + TypeScript + Ant Design
+- [ ] Tenant resolution (`X-Tenant-Slug` di dev / subdomain di prod)
+- [ ] Guest cart (`X-Cart-Session` di localStorage)
+- [ ] Catalog, search, product detail
+- [ ] Cart & checkout flow
+- [ ] Integrasi Midtrans Snap (client-side)
+- [ ] Customer account (login, orders, profile)
+- [ ] Responsive mobile-first
+
+### 1B.3 Dev & Integrasi
+
+- [ ] Env per app: `VITE_API_URL=http://localhost:8080`
+- [ ] Proxy dev Vite → API (opsional)
+- [ ] Script monorepo: `npm run dev:seller`, `npm run dev:web`
+- [ ] Manual testing UI end-to-end
+
+**Phase 1B Exit Criteria (MVP lengkap):**
+
+> Merchant daftar → login seller → tambah produk → customer buka web toko → beli → bayar Midtrans → merchant proses order. **Semua via UI, bukan curl.**
+
+---
+
+## Phase 2A: SaaS Platform Layer — API (Minggu 19–24)
 
 **Tujuan:** Platform siap monetisasi — subscription, billing, super admin.
 
@@ -221,14 +328,14 @@ Daftar → Buat Tenant → Pilih Subdomain → Setup Toko Dasar → Dashboard
 - [ ] Billing history
 - [ ] Email renewal reminder (7 hari, 1 hari sebelum expired)
 
-### 2.4 Super Admin Dashboard
+### 2.4 Super Admin — API
 
-- [ ] Tenant management (list, detail, suspend/activate)
-- [ ] Subscription overview
-- [ ] Billing & invoice monitoring
-- [ ] User monitoring
-- [ ] Impersonation (Login As Merchant) + audit log
-- [ ] Platform analytics dasar (total tenant, MRR, active users)
+- [ ] Tenant management API (list, detail, suspend/activate)
+- [ ] Subscription overview API
+- [ ] Billing & invoice monitoring API
+- [ ] User monitoring API
+- [ ] Impersonation API (Login As Merchant) + audit log
+- [ ] Platform analytics API (total tenant, MRR, active users)
 
 ### 2.5 Domain Management
 
@@ -237,13 +344,45 @@ Daftar → Buat Tenant → Pilih Subdomain → Setup Toko Dasar → Dashboard
 - [ ] Domain routing di tenant resolver
 - [ ] Feature gate: custom domain hanya Growth+
 
-**Phase 2 Exit Criteria:**
+**Phase 2A Exit Criteria:**
 
-> Merchant bisa berlangganan, bayar via Midtrans, super admin kelola platform, custom domain aktif.
+> Subscription, billing, super admin API siap — bisa diuji via API.
 
 ---
 
-## Phase 3: Growth Features (Minggu 19–26)
+## Phase 2B: Super Admin UI — `superadmin` (Minggu 25–28)
+
+**Tujuan:** Tim internal OwnCommerce kelola platform lewat dashboard.
+
+**Tech:** React + Vite + Ant Design (reuse `packages/ui` layout)
+
+| Halaman | Route | Fitur |
+|---|---|---|
+| Login | `/login` | Super admin auth |
+| Dashboard | `/` | Platform analytics (tenant, MRR, users) |
+| Tenants | `/tenants` | List, detail, suspend/activate |
+| Subscriptions | `/subscriptions` | Overview paket & status |
+| Billing | `/billing` | Invoice & payment monitoring |
+| Users | `/users` | User monitoring |
+| Impersonation | `/tenants/:id/impersonate` | Login as merchant |
+| Audit Logs | `/audit-logs` | Platform-wide audit trail |
+
+**Deliverables:**
+
+- [ ] Setup `apps/superadmin` (Vite + React + Ant Design)
+- [ ] Reuse `AppLayout` dari `packages/ui` (sidebar style sama dengan seller)
+- [ ] Tenant management UI
+- [ ] Subscription & billing overview
+- [ ] Impersonation flow
+- [ ] Audit log viewer
+
+**Phase 2 Exit Criteria (API + UI):**
+
+> Merchant berlangganan & bayar via Midtrans, super admin kelola platform lewat UI, custom domain aktif.
+
+---
+
+## Phase 3: Growth Features (Minggu 29–36)
 
 **Tujuan:** Fitur yang meningkatkan retensi dan diferensiasi.
 
@@ -292,7 +431,7 @@ Daftar → Buat Tenant → Pilih Subdomain → Setup Toko Dasar → Dashboard
 
 ---
 
-## Phase 4: Omnichannel (Future, Minggu 27+)
+## Phase 4: Omnichannel (Future, Minggu 37+)
 
 **Tujuan:** Visi jangka panjang — hubungkan website + marketplace.
 
@@ -377,9 +516,11 @@ Customer Request
 
 | Layer | Teknologi | Alasan |
 |---|---|---|
-| Storefront | Next.js 15 (App Router) | SSR/SSG untuk SEO, React ecosystem |
-| Merchant Dashboard | Next.js 15 | Konsistensi, shared packages |
-| Super Admin | Next.js 15 | Konsistensi |
+| Storefront (`web`) | React 18 + Vite + Ant Design | SPA cepat, clean UI, konsisten dengan dashboard |
+| Merchant Dashboard (`seller`) | React 18 + Vite + Ant Design | Sidebar layout, table & form rich |
+| Super Admin (`superadmin`) | React 18 + Vite + Ant Design | Reuse layout & theme dari `packages/ui` |
+| UI Library | Ant Design 5 | Komponen matang (Table, Form, Layout, Modal) |
+| Routing | React Router 6 | Client-side routing untuk SPA |
 | API | Go + Fiber | Performa, concurrency, sesuai rencana |
 | ORM | GORM | Produktivitas tinggi, ekosistem matang di Go |
 | Database | PostgreSQL 16 | JSONB, full-text search, mature |
@@ -391,6 +532,133 @@ Customer Request
 | Hosting | VPS sendiri | Kontrol penuh, biaya predictable |
 | CI/CD | GitHub Actions | Lint, test, build, deploy otomatis ke VPS |
 | Reverse Proxy | Nginx + Let's Encrypt | SSL, domain routing, static files |
+
+---
+
+## Arsitektur Frontend
+
+### Struktur Aplikasi React
+
+```
+apps/seller/                  apps/web/
+├── src/                      ├── src/
+│   ├── main.tsx              │   ├── main.tsx
+│   ├── App.tsx               │   ├── App.tsx
+│   ├── routes/               │   ├── routes/
+│   ├── pages/                │   ├── pages/
+│   ├── components/           │   ├── components/
+│   ├── hooks/                │   ├── hooks/
+│   └── lib/                  │   └── lib/
+└── vite.config.ts            └── vite.config.ts
+
+packages/ui/
+├── src/
+│   ├── theme/              → Ant Design theme config (warna, token)
+│   ├── layouts/
+│   │   ├── AppLayout.tsx   → Sidebar + Header + Content
+│   │   └── AuthLayout.tsx  → Centered login/register
+│   └── components/
+│       ├── PageHeader.tsx
+│       ├── DataTable.tsx   → Wrapper Table + pagination
+│       └── ...
+└── package.json
+```
+
+### Ant Design Theme (Clean White)
+
+Konfigurasi di `packages/ui/src/theme/index.ts`:
+
+```typescript
+// Prinsip: dominan putih, clean, minimal shadow
+const theme = {
+  token: {
+    colorPrimary: '#1677FF',
+    colorBgContainer: '#FFFFFF',
+    colorBgLayout: '#FAFAFA',
+    colorBorder: '#F0F0F0',
+    colorText: '#262626',
+    colorTextSecondary: '#8C8C8C',
+    borderRadius: 8,
+    fontFamily: 'Inter, -apple-system, sans-serif',
+  },
+  components: {
+    Layout: {
+      siderBg: '#FFFFFF',
+      headerBg: '#FFFFFF',
+      bodyBg: '#FAFAFA',
+    },
+    Menu: {
+      itemBg: 'transparent',
+      itemSelectedBg: '#F5F5F5',
+      itemHoverBg: '#FAFAFA',
+    },
+    Card: {
+      paddingLG: 24,
+    },
+    Table: {
+      headerBg: '#FAFAFA',
+      borderColor: '#F0F0F0',
+    },
+  },
+};
+```
+
+### Layout Pattern (Dashboard — seller & superadmin)
+
+Mengacu referensi visual: sidebar kiri putih + content area lebar.
+
+```
+┌──────────┬──────────────────────────────────────┐
+│          │  Header (breadcrumb, user menu)     │
+│  Sidebar ├──────────────────────────────────────┤
+│  (menu)  │                                      │
+│          │  Content Area (#FAFAFA bg)           │
+│          │  ┌─────────┐ ┌─────────┐            │
+│          │  │  Card   │ │  Card   │            │
+│          │  └─────────┘ └─────────┘            │
+│          │  ┌──────────────────────────┐      │
+│          │  │  Table / Form            │      │
+│          │  └──────────────────────────┘      │
+└──────────┴──────────────────────────────────────┘
+```
+
+### Layout Pattern (Storefront — web)
+
+Header horizontal + content fokus produk (tanpa sidebar admin).
+
+```
+┌──────────────────────────────────────────────────┐
+│  Logo Toko    [Search]           Cart  Account   │
+├──────────────────────────────────────────────────┤
+│                                                  │
+│  Hero / Banner (opsional)                        │
+│                                                  │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐   │
+│  │Product │ │Product │ │Product │ │Product │   │
+│  └────────┘ └────────┘ └────────┘ └────────┘   │
+│                                                  │
+└──────────────────────────────────────────────────┘
+```
+
+### Integrasi API dari Frontend
+
+```
+React App
+  → packages/sdk (axios/fetch wrapper)
+    → API Go (localhost:8080 / api.owncommerce.id)
+      → Header: Authorization (merchant/customer JWT)
+      → Header: X-Tenant-Slug (storefront dev)
+      → Header: X-Cart-Session (guest cart)
+```
+
+### Port Dev Lokal
+
+| App | Port | URL |
+|---|---|---|
+| API | 8080 | `http://localhost:8080` |
+| seller | 5173 | `http://localhost:5173` |
+| web | 5174 | `http://localhost:5174` |
+| superadmin | 5175 | `http://localhost:5175` |
 
 ---
 
@@ -443,7 +711,7 @@ Domain akan dibeli dan dikonfigurasi dengan struktur:
 **Jobs:**
 
 1. **Lint & Test** — golangci-lint, go test, eslint, typecheck
-2. **Build** — Docker image untuk `api`, `worker` (dan frontend jika SSR)
+2. **Build** — Docker image untuk `api`, `worker`; static build untuk `seller`, `web`, `superadmin` (Nginx serve)
 3. **Push** — Image ke `ghcr.io/{org}/owncommerce-{service}`
 4. **Deploy** — SSH ke VPS, jalankan deploy script:
    - `docker compose pull`
@@ -545,7 +813,7 @@ promotions, promotion_usages, notifications, shipments
 | Role | Jumlah | Fokus |
 |---|---|---|
 | Backend Engineer (Go) | 1–2 | API, multi-tenant, commerce |
-| Frontend Engineer | 1–2 | Storefront + merchant dashboard |
+| Frontend Engineer | 1–2 | React + Ant Design: `seller`, `web`, `superadmin` |
 | Full-stack / Lead | 1 | Arsitektur, super admin, infra |
 | Designer (part-time) | 0.5 | UI/UX storefront & dashboard |
 
@@ -553,14 +821,17 @@ promotions, promotion_usages, notifications, shipments
 
 | Fase | Durasi | Output |
 |---|---|---|
-| Phase 0: Foundation | 4 minggu | Infra, CI/CD, auth, tenant, RBAC |
-| Phase 1: MVP Commerce | 8 minggu | Toko online end-to-end + Midtrans |
-| Phase 2: SaaS Layer | 6 minggu | Subscription, billing, super admin |
+| Phase 0: Foundation | 4 minggu | Infra, auth, tenant, RBAC |
+| Phase 1A: Commerce API | 8 minggu | [x] Backend MVP + Midtrans |
+| Phase 1B: Frontend MVP | 6 minggu | `seller` + `web` (React + Ant Design) |
+| Phase 2A: SaaS API | 6 minggu | Subscription, billing, super admin API |
+| Phase 2B: Super Admin UI | 4 minggu | `superadmin` dashboard |
 | Phase 3: Growth | 8 minggu | Promo, analytics, multi-staff |
 | Phase 4: Omnichannel | 12+ minggu | Marketplace sync |
 
-**Total ke production-ready SaaS: ~6 bulan**  
-**Total ke omnichannel: ~9–12 bulan**
+**Total ke MVP lengkap (API + UI): ~7 bulan**  
+**Total ke production-ready SaaS: ~8 bulan**  
+**Total ke omnichannel: ~11–14 bulan**
 
 ---
 
@@ -580,22 +851,24 @@ promotions, promotion_usages, notifications, shipments
 
 ---
 
-## Langkah Pertama (Action Items)
+## Langkah Berikutnya (Action Items)
 
-Urutan implementasi yang disarankan:
+### Selesai (Phase 0 + 1A)
 
-1. **Setup monorepo** — struktur folder sesuai dokumen
-2. **Docker Compose** — PostgreSQL, Redis
-3. **Local storage** — direktori `storage/`, volume mount, env `STORAGE_PATH`
-4. **Go API skeleton** — Fiber + GORM, health check
-5. **Migration Phase 0** — GORM models + migration `tenants`, `users`, `roles`, `permissions`
-6. **Auth module** — register, login, JWT
-7. **Tenant resolver** — subdomain routing (`*.owncommerce.id`)
-8. **File upload module** — upload ke local storage, serve static files
-9. **CI/CD pipeline** — GitHub Actions workflow + deploy script VPS
-10. **Merchant dashboard skeleton** — login page, dashboard layout
-11. **Storefront skeleton** — homepage placeholder dengan tenant resolution
-12. **Midtrans integration** — Snap payment + webhook (bagian MVP)
+- [x] Setup monorepo, Docker Compose, Go API
+- [x] Auth, tenant, IAM, audit
+- [x] Commerce API (produk, cart, order, Midtrans)
+- [x] Manual testing API (`docs/testing-fase0.md`, `docs/testing-fase1.md`)
+
+### Berikutnya (Phase 1B — Frontend)
+
+1. **Setup `packages/ui`** — Ant Design theme (clean white) + `AppLayout`
+2. **Setup `packages/sdk`** — typed API client
+3. **Setup `apps/seller`** — Vite + React + login + sidebar layout
+4. **Seller pages** — products, categories, orders, settings
+5. **Setup `apps/web`** — Vite + React + tenant resolution
+6. **Web pages** — catalog, cart, checkout, Midtrans Snap, account
+7. **Manual testing UI** — end-to-end flow via browser
 
 ---
 
@@ -604,13 +877,17 @@ Urutan implementasi yang disarankan:
 | Keputusan | Pilihan | Catatan |
 |---|---|---|
 | ORM Go | **GORM** | AutoMigrate untuk dev, golang-migrate untuk production |
+| Frontend framework | **React 18 + Vite** | SPA untuk seller, web, superadmin |
+| UI library | **Ant Design 5** | Tabel, form, layout siap pakai |
+| Tema UI | **Clean white** | Dominan putih, sidebar putih, card minimal — referensi dashboard modern |
+| Monorepo tool | **Turborepo** | npm workspaces |
 | Hosting | **VPS sendiri** | Docker Compose di VPS, Nginx sebagai reverse proxy |
 | CI/CD | **GitHub Actions** | Automated deploy ke VPS on push ke `main` |
 | Domain | **`owncommerce.id`** | Akan dibeli; wildcard `*.owncommerce.id` untuk tenant |
 | Payment | **Midtrans** | Satu-satunya payment provider |
-| MVP Payment | **Midtrans langsung** | Tidak pakai manual transfer; Snap di checkout storefront |
+| MVP Payment | **Midtrans langsung** | Snap embed di frontend `web` |
 
 ## Keputusan yang Masih Terbuka
 
-1. **Monorepo tool:** Turborepo vs Nx?
-2. **Email provider:** Resend vs Brevo?
+1. **Email provider:** Resend vs Brevo?
+2. **Storefront SEO:** SPA dulu, atau tambah SSR/SSG nanti (Vite SSR / migrasi ke Next.js) untuk Phase 3?

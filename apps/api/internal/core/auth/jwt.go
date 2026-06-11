@@ -17,10 +17,17 @@ const (
 	TokenTypeRefresh TokenType = "refresh"
 )
 
+const (
+	ActorMerchant = "merchant"
+	ActorCustomer = "customer"
+)
+
 type Claims struct {
-	UserID    uuid.UUID  `json:"user_id"`
-	TenantID  *uuid.UUID `json:"tenant_id,omitempty"`
-	TokenType TokenType  `json:"token_type"`
+	UserID     uuid.UUID  `json:"user_id"`
+	CustomerID *uuid.UUID `json:"customer_id,omitempty"`
+	TenantID   *uuid.UUID `json:"tenant_id,omitempty"`
+	ActorType  string     `json:"actor_type"`
+	TokenType  TokenType  `json:"token_type"`
 	jwt.RegisteredClaims
 }
 
@@ -64,11 +71,48 @@ func (m *JWTManager) GenerateTokenPair(userID uuid.UUID, tenantID *uuid.UUID) (*
 	}, HashToken(refreshToken), nil
 }
 
+func (m *JWTManager) GenerateCustomerTokenPair(customerID, tenantID uuid.UUID) (*TokenPair, error) {
+	accessToken, err := m.generateCustomerToken(customerID, tenantID, TokenTypeAccess, m.accessExpiry)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken, err := m.generateCustomerToken(customerID, tenantID, TokenTypeRefresh, m.refreshExpiry)
+	if err != nil {
+		return nil, err
+	}
+	return &TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    int64(m.accessExpiry.Seconds()),
+		TokenType:    "Bearer",
+	}, nil
+}
+
+func (m *JWTManager) generateCustomerToken(customerID, tenantID uuid.UUID, tokenType TokenType, expiry time.Duration) (string, error) {
+	now := time.Now().UTC()
+	claims := Claims{
+		CustomerID: &customerID,
+		TenantID:   &tenantID,
+		ActorType:  ActorCustomer,
+		TokenType:  tokenType,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(expiry)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			Issuer:    "owncommerce",
+			Subject:   customerID.String(),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(m.secret)
+}
+
 func (m *JWTManager) generateToken(userID uuid.UUID, tenantID *uuid.UUID, tokenType TokenType, expiry time.Duration) (string, error) {
 	now := time.Now().UTC()
 	claims := Claims{
 		UserID:    userID,
 		TenantID:  tenantID,
+		ActorType: ActorMerchant,
 		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(expiry)),

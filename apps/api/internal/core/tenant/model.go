@@ -12,8 +12,14 @@ type Tenant struct {
 	Name        string         `gorm:"size:255;not null" json:"name"`
 	Slug        string         `gorm:"size:100;uniqueIndex;not null" json:"slug"`
 	Status      string         `gorm:"size:50;not null;default:active" json:"status"`
-	Description string         `gorm:"type:text" json:"description,omitempty"`
-	LogoURL     string         `gorm:"size:500" json:"logo_url,omitempty"`
+	Description  string         `gorm:"type:text" json:"description,omitempty"`
+	LogoURL      string         `gorm:"size:500" json:"logo_url,omitempty"`
+	ContactEmail string         `gorm:"size:255" json:"contact_email,omitempty"`
+	ContactPhone string         `gorm:"size:50" json:"contact_phone,omitempty"`
+	Address      string         `gorm:"type:text" json:"address,omitempty"`
+	City         string         `gorm:"size:100" json:"city,omitempty"`
+	Province     string         `gorm:"size:100" json:"province,omitempty"`
+	PostalCode   string         `gorm:"size:20" json:"postal_code,omitempty"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`

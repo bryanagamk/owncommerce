@@ -11,6 +11,7 @@ import (
 type Config struct {
 	AppEnv           string
 	AppPort          string
+	AppBaseURL       string
 	PlatformDomain   string
 	DatabaseURL      string
 	RedisURL         string
@@ -18,6 +19,9 @@ type Config struct {
 	JWTAccessExpiry  time.Duration
 	JWTRefreshExpiry time.Duration
 	StoragePath      string
+	MidtransServerKey string
+	MidtransClientKey string
+	MidtransIsProduction bool
 }
 
 func Load() (*Config, error) {
@@ -35,15 +39,19 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		AppEnv:           getEnv("APP_ENV", "development"),
-		AppPort:          getEnv("APP_PORT", "8080"),
-		PlatformDomain:   getEnv("PLATFORM_DOMAIN", "localhost"),
-		DatabaseURL:      getEnv("DATABASE_URL", "postgres://owncommerce:owncommerce@localhost:5432/owncommerce?sslmode=disable"),
-		RedisURL:         getEnv("REDIS_URL", "redis://localhost:6379/0"),
-		JWTSecret:        getEnv("JWT_SECRET", "dev-secret-change-me"),
-		JWTAccessExpiry:  accessExpiry,
-		JWTRefreshExpiry: refreshExpiry,
-		StoragePath:      getEnv("STORAGE_PATH", "../../storage"),
+		AppEnv:               getEnv("APP_ENV", "development"),
+		AppPort:              getEnv("APP_PORT", "8080"),
+		AppBaseURL:           getEnv("APP_BASE_URL", "http://localhost:8080"),
+		PlatformDomain:       getEnv("PLATFORM_DOMAIN", "localhost"),
+		DatabaseURL:          getEnv("DATABASE_URL", "postgres://owncommerce:owncommerce@localhost:5432/owncommerce?sslmode=disable"),
+		RedisURL:             getEnv("REDIS_URL", "redis://localhost:6379/0"),
+		JWTSecret:            getEnv("JWT_SECRET", "dev-secret-change-me"),
+		JWTAccessExpiry:      accessExpiry,
+		JWTRefreshExpiry:     refreshExpiry,
+		StoragePath:          getEnv("STORAGE_PATH", "../../storage"),
+		MidtransServerKey:    getEnv("MIDTRANS_SERVER_KEY", ""),
+		MidtransClientKey:    getEnv("MIDTRANS_CLIENT_KEY", ""),
+		MidtransIsProduction: getEnv("MIDTRANS_IS_PRODUCTION", "false") == "true",
 	}
 
 	if cfg.JWTSecret == "dev-secret-change-me" && cfg.AppEnv == "production" {

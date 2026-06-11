@@ -77,6 +77,10 @@ func (r *Repository) DomainExists(ctx context.Context, domain string) (bool, err
 	return count > 0, nil
 }
 
+func (r *Repository) Update(ctx context.Context, tenant *Tenant) error {
+	return r.db.WithContext(ctx).Save(tenant).Error
+}
+
 func (r *Repository) ListDomains(ctx context.Context, tenantID uuid.UUID) ([]TenantDomain, error) {
 	var domains []TenantDomain
 	if err := r.db.WithContext(ctx).Where("tenant_id = ?", tenantID).Find(&domains).Error; err != nil {
