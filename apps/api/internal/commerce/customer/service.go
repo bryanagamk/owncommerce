@@ -123,14 +123,14 @@ func (s *Service) UpdateProfile(ctx context.Context, tenantID, id uuid.UUID, inp
 }
 
 type AddressInput struct {
-	Label         string
-	RecipientName string
-	Phone         string
-	AddressLine   string
-	City          string
-	Province      string
-	PostalCode    string
-	IsDefault     bool
+	Label         string `json:"label"`
+	RecipientName string `json:"recipient_name"`
+	Phone         string `json:"phone"`
+	AddressLine   string `json:"address_line"`
+	City          string `json:"city"`
+	Province      string `json:"province"`
+	PostalCode    string `json:"postal_code"`
+	IsDefault     bool   `json:"is_default"`
 }
 
 func (s *Service) CreateAddress(ctx context.Context, tenantID, customerID uuid.UUID, input AddressInput) (*Address, error) {

@@ -179,6 +179,34 @@ func (h *StorefrontHandler) CustomerMe(c *fiber.Ctx) error {
 	return response.OK(c, cust)
 }
 
+func (h *StorefrontHandler) UpdateCustomerMe(c *fiber.Ctx) error {
+	tenantID, err := storefrontTenantID(c)
+	if err != nil {
+		return err
+	}
+	customerID := middleware.CustomerIDFromLocals(c)
+	if customerID == nil {
+		return response.Unauthorized(c, "authentication required")
+	}
+	var req struct {
+		Name  *string `json:"name"`
+		Phone *string `json:"phone"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return response.BadRequest(c, "invalid request body")
+	}
+	if req.Name == nil && req.Phone == nil {
+		return response.BadRequest(c, "name or phone is required")
+	}
+	cust, err := h.customerSvc.UpdateProfile(c.UserContext(), tenantID, *customerID, customer.UpdateProfileInput{
+		Name: req.Name, Phone: req.Phone,
+	})
+	if err != nil {
+		return response.BadRequest(c, err.Error())
+	}
+	return response.OK(c, cust)
+}
+
 func (h *StorefrontHandler) ListAddresses(c *fiber.Ctx) error {
 	tenantID, err := storefrontTenantID(c)
 	if err != nil {
@@ -213,6 +241,49 @@ func (h *StorefrontHandler) CreateAddress(c *fiber.Ctx) error {
 		return response.BadRequest(c, err.Error())
 	}
 	return response.Created(c, item)
+}
+
+func (h *StorefrontHandler) UpdateAddress(c *fiber.Ctx) error {
+	tenantID, err := storefrontTenantID(c)
+	if err != nil {
+		return err
+	}
+	customerID := middleware.CustomerIDFromLocals(c)
+	if customerID == nil {
+		return response.Unauthorized(c, "authentication required")
+	}
+	addressID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return response.BadRequest(c, "invalid address id")
+	}
+	var req customer.AddressInput
+	if err := c.BodyParser(&req); err != nil || req.RecipientName == "" {
+		return response.BadRequest(c, "invalid address data")
+	}
+	item, err := h.customerSvc.UpdateAddress(c.UserContext(), tenantID, *customerID, addressID, req)
+	if err != nil {
+		return response.NotFound(c, "address not found")
+	}
+	return response.OK(c, item)
+}
+
+func (h *StorefrontHandler) DeleteAddress(c *fiber.Ctx) error {
+	tenantID, err := storefrontTenantID(c)
+	if err != nil {
+		return err
+	}
+	customerID := middleware.CustomerIDFromLocals(c)
+	if customerID == nil {
+		return response.Unauthorized(c, "authentication required")
+	}
+	addressID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return response.BadRequest(c, "invalid address id")
+	}
+	if err := h.customerSvc.DeleteAddress(c.UserContext(), tenantID, *customerID, addressID); err != nil {
+		return response.NotFound(c, "address not found")
+	}
+	return response.OK(c, fiber.Map{"deleted": true})
 }
 
 func (h *StorefrontHandler) GetCart(c *fiber.Ctx) error {

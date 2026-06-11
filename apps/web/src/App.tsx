@@ -1,5 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
+import { CustomerRoute } from './components/CustomerRoute';
 import { StoreLayout } from './components/StoreLayout';
+import AccountProfilePage from './pages/AccountProfilePage';
 import AccountLoginPage from './pages/AccountLoginPage';
 import AccountOrdersPage from './pages/AccountOrdersPage';
 import AccountRegisterPage from './pages/AccountRegisterPage';
@@ -26,7 +28,10 @@ export default function App() {
         <Route path="payment/failed" element={<PaymentFailedPage />} />
         <Route path="account/login" element={<AccountLoginPage />} />
         <Route path="account/register" element={<AccountRegisterPage />} />
-        <Route path="account/orders" element={<AccountOrdersPage />} />
+        <Route element={<CustomerRoute />}>
+          <Route path="account/profile" element={<AccountProfilePage />} />
+          <Route path="account/orders" element={<AccountOrdersPage />} />
+        </Route>
       </Route>
     </Routes>
   );

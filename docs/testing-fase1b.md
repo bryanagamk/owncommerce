@@ -86,8 +86,18 @@ Buka http://localhost:5174
 1. Buka http://localhost:5174/account/register
 2. Daftar akun customer
 3. Login ulang di `/account/login`
-4. Belanja lagi (cart terikat ke akun)
-5. Buka **Pesanan** di header → lihat riwayat order
+4. Buka **Profil** → update nama/telepon, tambah alamat pengiriman
+5. Belanja lagi (cart terikat ke akun)
+6. Checkout → pilih alamat tersimpan dari dropdown
+7. Buka **Pesanan** di header → lihat riwayat order
+
+### E. Merchant — Onboarding Wizard
+
+1. Daftar merchant baru di http://localhost:5173/register
+2. Setelah daftar, diarahkan ke `/onboarding`
+3. Lengkapi profil toko → (opsional) kategori → (opsional) produk pertama
+4. Selesai → masuk dashboard
+5. Login merchant lama → langsung ke dashboard (skip onboarding)
 
 ---
 
@@ -105,6 +115,9 @@ Buka http://localhost:5174
 | 8 | Midtrans Snap payment | - | ✅ |
 | 9 | Daftar & kelola pesanan merchant | ✅ | - |
 | 10 | Customer orders history | - | ✅ |
+| 11 | Customer profile & alamat | - | ✅ |
+| 12 | Onboarding wizard merchant | ✅ | - |
+| 13 | Filter kategori di katalog | - | ✅ |
 
 ---
 

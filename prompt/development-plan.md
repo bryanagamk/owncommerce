@@ -13,7 +13,8 @@
 | **Arsitektur** | Multi-tenant shared DB + shared schema (`tenant_id` di semua data) |
 | **Backend** | Go + Fiber + GORM + PostgreSQL + Redis + Asynq |
 | **Frontend** | React + Vite + TypeScript — `web`, `seller`, `superadmin` |
-| **UI Library** | Ant Design 5 — tema putih dominan, clean & minimal |
+| **Storefront** | **Theme system** — satu `apps/web`, banyak paket tema React per tenant |
+| **UI Library** | Ant Design 5 — dashboard clean white; storefront bebas per tema |
 | **File Storage** | Local storage (filesystem server) |
 | **Hosting** | VPS sendiri (Docker) |
 | **CI/CD** | GitHub Actions → automated deploy ke VPS |
@@ -31,6 +32,7 @@
 4. **Ship early, iterate** — merchant bisa jualan online dalam 8–12 minggu (MVP).
 5. **Feature flag + subscription** — batasi fitur per paket sejak awal, meski paket awal masih sederhana.
 6. **API-first, UI mengikuti** — backend stabil dulu, frontend React + Ant Design menyusul (Phase 1B).
+7. **Theme system untuk storefront** — satu deploy `web`, banyak template; tim platform bisa buat tema eksklusif per client tanpa fork aplikasi (Phase 1C).
 
 ---
 
@@ -46,8 +48,10 @@ gantt
     MVP Commerce API             :p1a, after p0, 8w
     section Phase 1B
     Frontend MVP seller+web      :p1b, after p1a, 6w
+    section Phase 1C
+    Storefront Theme System      :p1c, after p1b, 4w
     section Phase 2A
-    SaaS Platform API            :p2a, after p1b, 6w
+    SaaS Platform API            :p2a, after p1c, 6w
     section Phase 2B
     Super Admin UI               :p2b, after p2a, 4w
     section Phase 3
@@ -69,12 +73,16 @@ gantt
 ```
 owncommerce/
 ├── apps/
-│   ├── web/          → React + Vite (storefront customer)
+│   ├── web/          → Storefront shell (tenant resolve + theme loader)
 │   ├── seller/       → React + Vite (merchant dashboard)
 │   ├── superadmin/   → React + Vite (internal platform)
 │   └── api/          → Go Fiber
 ├── packages/
-│   ├── ui/           → Ant Design theme, layout, shared components
+│   ├── ui/           → Ant Design theme, layout, shared components (seller/superadmin)
+│   ├── theme-contract/ → Interface & hooks wajib semua tema storefront
+│   ├── theme-default/  → Tema storefront default
+│   ├── theme-*/        → Preset tema publik
+│   ├── themes/         → Tema eksklusif per client (`themes/{client}/`)
 │   ├── types/        → Shared TypeScript types
 │   ├── sdk/          → API client untuk frontend
 │   └── shared/       → Utils, constants
@@ -142,7 +150,7 @@ Prioritas implementasi:
 
 **Tujuan:** Backend siap — merchant bisa daftar, tambah produk, customer bisa beli, merchant kelola pesanan via API.
 
-> **Status:** Phase 1A (API) + Phase 1B (frontend MVP) selesai. Lanjut polish atau Phase 2A.
+> **Status:** Phase 1A + 1B selesai. Berikutnya Phase 1C (theme system), lalu Phase 2A.
 
 ### 1.1 Merchant Onboarding Flow
 
@@ -155,7 +163,7 @@ Daftar → Buat Tenant → Pilih Subdomain → Setup Toko Dasar → Dashboard
 - [x] Registrasi merchant owner (Phase 0)
 - [x] Auto-provision subdomain (`toko.localhost` di dev)
 - [x] Store settings API (nama, deskripsi, kontak, alamat)
-- [ ] Onboarding wizard → Phase 1B (`seller`)
+- [x] Onboarding wizard (`seller`)
 
 ### 1.2 Product & Catalog (Merchant Dashboard)
 
@@ -171,7 +179,9 @@ Daftar → Buat Tenant → Pilih Subdomain → Setup Toko Dasar → Dashboard
 - [x] Product catalog + filter kategori
 - [x] Product detail (by slug)
 - [x] Search produk (ILIKE)
-- [x] Responsive mobile-first (dasar) → Phase 1B (`web`) — polish lanjut
+- [x] UI storefront dasar → Phase 1B (`web`)
+- [ ] Multi-theme per tenant → Phase 1C (theme system)
+- [ ] Responsive mobile-first polish → Phase 1B/3
 
 ### 1.4 Cart & Checkout
 
@@ -204,9 +214,11 @@ Daftar → Buat Tenant → Pilih Subdomain → Setup Toko Dasar → Dashboard
 
 ---
 
-## Phase 1B: Frontend MVP — `seller` + `web` (Minggu 13–18)
+## Phase 1B: Frontend MVP — `seller` + `web` (Minggu 13–18) ✅
 
 **Tujuan:** UI end-to-end — merchant kelola toko lewat dashboard, customer belanja lewat storefront.
+
+> **Status:** ✅ Selesai (termasuk onboarding, profil customer, EmptyState, responsive dasar). Multi-theme di Phase 1C.
 
 **Tech:** React 18 + Vite + TypeScript + Ant Design 5 + React Router
 
@@ -233,7 +245,7 @@ Setup fondasi UI di `packages/ui` sebelum halaman aplikasi.
 - [x] `packages/ui` — Ant Design `ConfigProvider` + custom theme token
 - [x] `packages/ui` — `AppLayout` (sidebar + header + content) seperti referensi
 - [x] `packages/ui` — shared components: `PageHeader`, `Loading`
-- [ ] `packages/ui` — `EmptyState` component
+- [x] `packages/ui` — `EmptyState` component
 - [x] `packages/sdk` — typed API client (auth, merchant, storefront)
 - [x] `packages/types` — shared TypeScript interfaces dari API response
 
@@ -260,11 +272,11 @@ Layout: sidebar kiri + content area kanan (mirip referensi Sell Bridge).
 - [x] CRUD kategori & produk
 - [x] Upload gambar produk
 - [x] Daftar & kelola pesanan
-- [ ] Onboarding wizard setelah register
+- [x] Onboarding wizard setelah register
 
 ### 1B.2 Storefront (`apps/web`)
 
-Layout: header toko + content — tetap clean putih, fokus produk (bukan sidebar admin).
+Layout: header toko + content — satu template untuk semua tenant (akan di-refactor jadi `theme-default` di Phase 1C).
 
 | Halaman | Route | Fitur |
 |---|---|---|
@@ -282,19 +294,19 @@ Layout: header toko + content — tetap clean putih, fokus produk (bukan sidebar
 **Deliverables:**
 
 - [x] Setup Vite + React + TypeScript + Ant Design
-- [x] Tenant resolution (`X-Tenant-Slug` di dev / subdomain di prod)
+- [x] Tenant resolution sementara (`VITE_TENANT_SLUG` dev) → **Phase 1C:** runtime hostname
 - [x] Guest cart (`X-Cart-Session` di localStorage)
 - [x] Catalog, search, product detail
 - [x] Cart & checkout flow
 - [x] Integrasi Midtrans Snap (client-side)
 - [x] Customer account (login, orders)
-- [ ] Customer profile & alamat (`/account/profile`)
-- [ ] Responsive mobile-first (polish)
+- [x] Customer profile & alamat (`/account/profile`)
+- [x] Responsive mobile-first (dasar — header mobile, sidebar breakpoint)
 
 ### 1B.3 Dev & Integrasi
 
 - [x] Env per app: `VITE_API_URL=http://localhost:8080`
-- [ ] Proxy dev Vite → API (opsional)
+- [x] Proxy dev Vite → API (`/v1`, `/files`)
 - [x] Script monorepo: `npm run dev:seller`, `npm run dev:web`
 - [x] Manual testing UI end-to-end (`docs/testing-fase1b.md`)
 
@@ -452,46 +464,88 @@ const registry: Record<string, () => Promise<{ theme: StorefrontTheme }>> = {
 
 | Paket | Tema |
 |---|---|
-| Trial / Starter | Pilih dari public themes (1–2 preset) |
-| Growth | Semua public themes + custom settings |
+| Trial / Starter | Tema `default` saja |
+| Growth | Pilih public themes + edit settings (warna, banner) |
 | Enterprise | Exclusive custom theme oleh tim platform |
 
-Middleware: `RequireFeature("custom_theme")` untuk assign tema eksklusif.
+Feature flags: `theme_gallery`, `theme_settings`, `custom_theme` (exclusive).
+
+### Dev Lokal (multi-tenant + multi-theme)
+
+| Mode | Cara resolve tenant | Keterangan |
+|---|---|---|
+| **Production** | Hostname (`tokobunga.owncommerce.id`) | Standar |
+| **Local (hostname)** | `/etc/hosts` → `127.0.0.1 tokobunga.localhost` | Mirip production |
+| **Local (fallback)** | Header `X-Tenant-Slug` | Untuk API testing |
+| **Local (override)** | Query `?tenant=tokobunga` (dev only) | Opsional, untuk QA cepat |
+
+`VITE_TENANT_SLUG` akan dihapus setelah Phase 1C — tenant harus runtime, bukan build-time.
+
+### Dokumentasi Tema (akan dibuat di Phase 1C)
+
+- `docs/theme-development.md` — cara scaffold & develop tema baru
+- `docs/theme-settings-schema.md` — konvensi JSON schema settings per tema
 
 ---
 
 ## Phase 1C: Theme System Foundation (Minggu 19–22)
 
-**Tujuan:** Refactor storefront jadi theme-ready; satu tenant bisa pakai tema berbeda dari tenant lain.
+**Tujuan:** Refactor storefront jadi theme-ready; setiap tenant bisa punya tampilan berbeda (preset atau eksklusif).
 
-### 1C.1 Contract & Refactor
+**Prasyarat:** Phase 1B selesai (`apps/web` berfungsi sebagai referensi `theme-default`).
 
-- [ ] `packages/theme-contract` — types, `ThemeProvider`, hooks
-- [ ] Refactor `apps/web/src/pages/*` → `packages/theme-default`
-- [ ] `apps/web` jadi shell: bootstrap + theme loader + error fallback
+### 1C.1 Contract & Package Structure
 
-### 1C.2 Backend
+- [ ] `packages/theme-contract` — `StorefrontTheme` interface, `ThemeProvider`, `useThemeContext`, `useStorefrontApi`
+- [ ] Definisi halaman wajib & route path standar (parity checklist)
+- [ ] `packages/theme-default` — pindahkan `apps/web/src/pages/*`, `StoreLayout`, styles
+- [ ] `apps/web` refactor jadi shell:
+  - [ ] `resolveTenant()` dari hostname
+  - [ ] `fetchBootstrap()` → theme slug + settings
+  - [ ] `theme-registry.ts` + lazy `import()`
+  - [ ] Error boundary: tema tidak ditemukan → fallback `default`
+  - [ ] Loading state saat chunk tema di-fetch
 
-- [ ] Model `themes` + `tenant_storefront`
-- [ ] `GET /v1/storefront/bootstrap` (store + theme + settings)
-- [ ] Seed tema `default` untuk semua tenant existing
-- [ ] Runtime tenant resolve dari hostname di frontend (ganti `VITE_TENANT_SLUG`)
+### 1C.2 Backend (Go)
 
-### 1C.3 Admin & Merchant
+- [ ] Modul `internal/core/theme/` — model, repository, service
+- [ ] GORM models: `themes`, `tenant_storefront`
+- [ ] AutoMigrate + seed tema `default` (`is_public=true`)
+- [ ] Auto-assign `default` ke semua tenant existing
+- [ ] `GET /v1/storefront/bootstrap` — gabung store info + theme slug + merged settings
+- [ ] `GET /v1/merchant/store/theme` — merchant lihat tema aktif
+- [ ] `PATCH /v1/merchant/store/theme` — update settings (validasi terhadap `settings_schema`)
+- [ ] `GET /v1/admin/themes` — list katalog tema
+- [ ] `POST /v1/admin/themes` — register tema baru (slug, package_name, schema)
+- [ ] `PATCH /v1/admin/tenants/:id/theme` — assign tema ke tenant
 
-- [ ] Super admin: assign theme ke tenant (API dulu, UI di Phase 2B)
-- [ ] Merchant: preview tema aktif di settings (read-only dulu)
-- [ ] Merchant: edit theme settings (warna, banner) sesuai schema
+### 1C.3 Merchant UI (`seller`)
 
-### 1C.4 Proof of Concept
+- [ ] Halaman **Appearance** (`/settings/appearance`) — preview tema aktif
+- [ ] Form dynamic dari `settings_schema` (warna, banner, font)
+- [ ] Upload banner/logo ke `storage/tenants/{id}/store/`
 
-- [ ] `packages/theme-minimal` — preset kedua dengan layout berbeda (bukti sistem jalan)
-- [ ] `packages/themes/example-exclusive` — contoh tema eksklusif `is_public=false`
-- [ ] Manual test: 2 tenant, 2 tema berbeda, 1 domain masing-masing
+### 1C.4 Proof of Concept — Multi Theme
+
+- [ ] `packages/theme-minimal` — layout berbeda (bukti preset kedua)
+- [ ] `packages/themes/example-exclusive` — tema `is_public=false`
+- [ ] Seed: tenant A → `default`, tenant B → `minimal`
+- [ ] `docs/testing-fase1c.md` — manual test 2 tenant, 2 tema, flow commerce sama
+
+### 1C.5 Scaffold Tooling (opsional tapi direkomendasikan)
+
+- [ ] Script `npm run theme:new -- --name client-x` — generate folder dari template
+- [ ] Checklist CI: setiap tema lolos typecheck + route parity test
 
 **Phase 1C Exit Criteria:**
 
-> `tokobunga.owncommerce.id` pakai tema A, `tokokue.owncommerce.id` pakai tema B — tampilan berbeda, commerce flow sama.
+> `tokobunga.localhost` pakai tema A, `tokokue.localhost` pakai tema B — **tampilan berbeda**, cart/checkout/payment **tetap jalan**. Tim platform bisa menambah tema eksklusif baru tanpa mengubah `apps/web` shell.
+
+**Yang sengaja ditunda ke Phase 2B / 3:**
+
+- Super admin UI assign tema (API siap di 1C, UI di 2B)
+- Theme gallery untuk merchant pilih tema (Phase 3)
+- Theme preview side-by-side sebelum publish (Phase 3)
 
 ---
 
@@ -511,6 +565,7 @@ Middleware: `RequireFeature("custom_theme")` untuk assign tema eksklusif.
 
 - [ ] `plan_features` mapping
 - [ ] Middleware `RequireFeature("custom_domain")`
+- [ ] Middleware `RequireFeature("theme_gallery")`, `RequireFeature("custom_theme")`
 - [ ] UI: fitur terkunci + upgrade CTA
 
 ### 2.3 Billing Engine
@@ -543,7 +598,7 @@ Middleware: `RequireFeature("custom_theme")` untuk assign tema eksklusif.
 
 ---
 
-## Phase 2B: Super Admin UI — `superadmin` (Minggu 25–28)
+## Phase 2B: Super Admin UI — `superadmin` (Minggu 29–32)
 
 **Tujuan:** Tim internal OwnCommerce kelola platform lewat dashboard.
 
@@ -554,6 +609,8 @@ Middleware: `RequireFeature("custom_theme")` untuk assign tema eksklusif.
 | Login | `/login` | Super admin auth |
 | Dashboard | `/` | Platform analytics (tenant, MRR, users) |
 | Tenants | `/tenants` | List, detail, suspend/activate |
+| Tenants | `/tenants/:id/theme` | Assign tema ke tenant (public / exclusive) |
+| Themes | `/themes` | Katalog tema, register tema baru, preview |
 | Subscriptions | `/subscriptions` | Overview paket & status |
 | Billing | `/billing` | Invoice & payment monitoring |
 | Users | `/users` | User monitoring |
@@ -565,17 +622,18 @@ Middleware: `RequireFeature("custom_theme")` untuk assign tema eksklusif.
 - [ ] Setup `apps/superadmin` (Vite + React + Ant Design)
 - [ ] Reuse `AppLayout` dari `packages/ui` (sidebar style sama dengan seller)
 - [ ] Tenant management UI
+- [ ] **Theme management UI** — assign tema eksklusif ke client
 - [ ] Subscription & billing overview
 - [ ] Impersonation flow
 - [ ] Audit log viewer
 
 **Phase 2 Exit Criteria (API + UI):**
 
-> Merchant berlangganan & bayar via Midtrans, super admin kelola platform lewat UI, custom domain aktif.
+> Merchant berlangganan & bayar via Midtrans, super admin kelola platform + assign tema per tenant lewat UI, custom domain aktif.
 
 ---
 
-## Phase 3: Growth Features (Minggu 29–36)
+## Phase 3: Growth Features (Minggu 33–40)
 
 **Tujuan:** Fitur yang meningkatkan retensi dan diferensiasi.
 
@@ -626,7 +684,7 @@ Middleware: `RequireFeature("custom_theme")` untuk assign tema eksklusif.
 
 ---
 
-## Phase 4: Omnichannel (Future, Minggu 37+)
+## Phase 4: Omnichannel (Future, Minggu 41+)
 
 **Tujuan:** Visi jangka panjang — hubungkan website + marketplace.
 
@@ -673,6 +731,7 @@ apps/api/
 │   ├── core/
 │   │   ├── auth/
 │   │   ├── tenant/
+│   │   ├── theme/          → Katalog tema + assignment per tenant
 │   │   ├── iam/
 │   │   ├── subscription/
 │   │   ├── billing/
@@ -711,7 +770,7 @@ Customer Request
 
 | Layer | Teknologi | Alasan |
 |---|---|---|
-| Storefront (`web`) | React 18 + Vite + Ant Design | SPA cepat, clean UI, konsisten dengan dashboard |
+| Storefront (`web`) | React 18 + Vite + theme packages | Shell + lazy-load tema per tenant; Ant Design opsional per tema |
 | Merchant Dashboard (`seller`) | React 18 + Vite + Ant Design | Sidebar layout, table & form rich |
 | Super Admin (`superadmin`) | React 18 + Vite + Ant Design | Reuse layout & theme dari `packages/ui` |
 | UI Library | Ant Design 5 | Komponen matang (Table, Form, Layout, Modal) |
@@ -732,31 +791,47 @@ Customer Request
 
 ## Arsitektur Frontend
 
+### Pemisahan: Dashboard vs Storefront
+
+| Aplikasi | Pola UI | Package |
+|---|---|---|
+| `seller`, `superadmin` | Satu design system — Ant Design clean white | `packages/ui` |
+| `web` (storefront) | **Theme system** — tampilan berbeda per tenant | `packages/theme-*` |
+
+Dashboard merchant & super admin **tidak** memakai theme system. Hanya customer-facing storefront.
+
 ### Struktur Aplikasi React
 
 ```
-apps/seller/                  apps/web/
-├── src/                      ├── src/
-│   ├── main.tsx              │   ├── main.tsx
-│   ├── App.tsx               │   ├── App.tsx
-│   ├── routes/               │   ├── routes/
-│   ├── pages/                │   ├── pages/
-│   ├── components/           │   ├── components/
-│   ├── hooks/                │   ├── hooks/
-│   └── lib/                  │   └── lib/
-└── vite.config.ts            └── vite.config.ts
+apps/seller/                     apps/web/  (shell)
+├── src/                         ├── src/
+│   ├── pages/                   │   ├── main.tsx
+│   ├── components/              │   ├── App.tsx          → bootstrap + load theme
+│   └── lib/                     │   ├── theme-registry.ts
+└── vite.config.ts               │   ├── resolve-tenant.ts
+                                 │   └── lib/             → api, minimal shared
+                                 └── vite.config.ts
 
-packages/ui/
+packages/theme-contract/         → Interface wajib + ThemeProvider + hooks
+packages/theme-default/          → Tema default (dari MVP 1B)
+packages/theme-minimal/          → Preset alternatif
+packages/themes/{client}/        → Tema eksklusif per client
+
+packages/ui/                     → Hanya seller & superadmin
 ├── src/
-│   ├── theme/              → Ant Design theme config (warna, token)
-│   ├── layouts/
-│   │   ├── AppLayout.tsx   → Sidebar + Header + Content
-│   │   └── AuthLayout.tsx  → Centered login/register
-│   └── components/
-│       ├── PageHeader.tsx
-│       ├── DataTable.tsx   → Wrapper Table + pagination
-│       └── ...
-└── package.json
+│   ├── theme/                   → Ant Design token (dashboard)
+│   ├── layouts/                 → AppLayout, AuthLayout
+│   └── components/              → PageHeader, Loading, ...
+```
+
+### Alur Boot Storefront (`apps/web`)
+
+```
+1. main.tsx
+2. resolveTenant(hostname)           → slug tenant
+3. storefrontApi.bootstrap()         → { store, theme: { slug, settings } }
+4. import(registry[theme.slug])    → lazy load chunk tema
+5. <ThemeProvider value={...}>       → render routes tema
 ```
 
 ### Ant Design Theme (Clean White)
@@ -817,33 +892,33 @@ Mengacu referensi visual: sidebar kiri putih + content area lebar.
 └──────────┴──────────────────────────────────────┘
 ```
 
-### Layout Pattern (Storefront — web)
+### Layout Pattern (Storefront — per tema)
 
-Header horizontal + content fokus produk (tanpa sidebar admin).
+Setiap tema **bebas** mendefinisikan layout sendiri. Contoh `theme-default`:
 
 ```
 ┌──────────────────────────────────────────────────┐
 │  Logo Toko    [Search]           Cart  Account   │
 ├──────────────────────────────────────────────────┤
-│                                                  │
-│  Hero / Banner (opsional)                        │
-│                                                  │
+│  Hero / Banner (dari theme settings)             │
 │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐   │
 │  │Product │ │Product │ │Product │ │Product │   │
 │  └────────┘ └────────┘ └────────┘ └────────┘   │
-│                                                  │
 └──────────────────────────────────────────────────┘
 ```
+
+Tema eksklusif client bisa full-width hero, sidebar kategori, masonry grid, dll. — selama route & commerce flow tetap.
 
 ### Integrasi API dari Frontend
 
 ```
-React App
-  → packages/sdk (axios/fetch wrapper)
+Theme package / Shell
+  → packages/sdk (fetch wrapper)
     → API Go (localhost:8080 / api.owncommerce.id)
       → Header: Authorization (merchant/customer JWT)
-      → Header: X-Tenant-Slug (storefront dev)
+      → Header: X-Tenant-Slug (fallback dev / API test)
       → Header: X-Cart-Session (guest cart)
+      → Tenant production: resolve dari Host header (API middleware)
 ```
 
 ### Port Dev Lokal
@@ -995,6 +1070,9 @@ inventories, customers, customer_addresses,
 carts, cart_items, orders, order_items, order_status_history,
 payments (Midtrans transaction log)
 
+-- Storefront Theme (Phase 1C)
+themes, tenant_storefront
+
 -- Growth (Phase 3)
 promotions, promotion_usages, notifications, shipments
 ```
@@ -1008,7 +1086,7 @@ promotions, promotion_usages, notifications, shipments
 | Role | Jumlah | Fokus |
 |---|---|---|
 | Backend Engineer (Go) | 1–2 | API, multi-tenant, commerce |
-| Frontend Engineer | 1–2 | React + Ant Design: `seller`, `web`, `superadmin` |
+| Frontend Engineer | 1–2 | React + Ant Design: `seller`, `superadmin`; theme system: `web` + `packages/theme-*` |
 | Full-stack / Lead | 1 | Arsitektur, super admin, infra |
 | Designer (part-time) | 0.5 | UI/UX storefront & dashboard |
 
@@ -1018,15 +1096,17 @@ promotions, promotion_usages, notifications, shipments
 |---|---|---|
 | Phase 0: Foundation | 4 minggu | Infra, auth, tenant, RBAC |
 | Phase 1A: Commerce API | 8 minggu | [x] Backend MVP + Midtrans |
-| Phase 1B: Frontend MVP | 6 minggu | `seller` + `web` (React + Ant Design) |
+| Phase 1B: Frontend MVP | 6 minggu | [x] `seller` + `web` (satu template) |
+| Phase 1C: Theme System | 4 minggu | Multi-theme storefront, tema eksklusif per client |
 | Phase 2A: SaaS API | 6 minggu | Subscription, billing, super admin API |
-| Phase 2B: Super Admin UI | 4 minggu | `superadmin` dashboard |
-| Phase 3: Growth | 8 minggu | Promo, analytics, multi-staff |
+| Phase 2B: Super Admin UI | 4 minggu | `superadmin` + theme management |
+| Phase 3: Growth | 8 minggu | Theme gallery, promo, analytics |
 | Phase 4: Omnichannel | 12+ minggu | Marketplace sync |
 
-**Total ke MVP lengkap (API + UI): ~7 bulan**  
-**Total ke production-ready SaaS: ~8 bulan**  
-**Total ke omnichannel: ~11–14 bulan**
+**Total ke MVP commerce (API + UI): ~7 bulan** — selesai Phase 1B  
+**Total ke multi-theme storefront: ~8 bulan** — selesai Phase 1C  
+**Total ke production-ready SaaS: ~9 bulan** — selesai Phase 2B  
+**Total ke omnichannel: ~12–15 bulan**
 
 ---
 
@@ -1043,6 +1123,9 @@ promotions, promotion_usages, notifications, shipments
 | Disk penuh (local storage) | Sedang | Monitoring disk usage, quota per tenant, backup rutin |
 | Deploy gagal di VPS | Sedang | Health check + rollback script, backup DB sebelum migration |
 | Midtrans webhook tidak sampai | Tinggi | Idempotent handler, retry log, endpoint dapat diakses publik via HTTPS |
+| Bundle `web` membesar (banyak tema) | Sedang | Lazy import per tema, code-splitting, monitor chunk size di CI |
+| Tema client break setelah update contract | Sedang | Semver `theme-contract`, parity test, changelog |
+| Tenant resolve salah di production | Tinggi | Integration test hostname, wildcard DNS, fallback 404 jelas |
 
 ---
 
@@ -1062,11 +1145,11 @@ promotions, promotion_usages, notifications, shipments
 - [x] `apps/web` — storefront catalog, cart, checkout, Midtrans, account
 - [x] Manual testing UI (`docs/testing-fase1b.md`)
 
-### Berikutnya
+### Berikutnya (prioritas)
 
-1. **Phase 1C** — Theme system (refactor `theme-default`, bootstrap API, multi-theme)
-2. **Phase 1B polish** — onboarding wizard, customer profile
-3. **Phase 2A** — subscription & billing API
+1. **Phase 1C** — Theme system (storefront multi-template per tenant)
+2. **Phase 2A** — subscription & billing API
+3. **Phase 2B** — super admin UI + theme assignment per tenant
 
 ---
 
@@ -1077,7 +1160,9 @@ promotions, promotion_usages, notifications, shipments
 | ORM Go | **GORM** | AutoMigrate untuk dev, golang-migrate untuk production |
 | Frontend framework | **React 18 + Vite** | SPA untuk seller, web, superadmin |
 | UI library | **Ant Design 5** | Tabel, form, layout siap pakai |
-| Tema UI | **Clean white** | Dominan putih, sidebar putih, card minimal — referensi dashboard modern |
+| Tema UI dashboard | **Clean white** | `seller` & `superadmin` — dominan putih, Ant Design |
+| Storefront theme | **Theme system (React packages)** | Satu `web` deploy, banyak tema; eksklusif per client di `packages/themes/` |
+| Tenant resolve (storefront) | **Hostname (runtime)** | `*.owncommerce.id` / custom domain; dev via `/etc/hosts` |
 | Monorepo tool | **Turborepo** | npm workspaces |
 | Hosting | **VPS sendiri** | Docker Compose di VPS, Nginx sebagai reverse proxy |
 | CI/CD | **GitHub Actions** | Automated deploy ke VPS on push ke `main` |
@@ -1089,3 +1174,5 @@ promotions, promotion_usages, notifications, shipments
 
 1. **Email provider:** Resend vs Brevo?
 2. **Storefront SEO:** SPA dulu, atau tambah SSR/SSG nanti (Vite SSR / migrasi ke Next.js) untuk Phase 3?
+3. **Theme styling:** Ant Design di semua tema default, atau izinkan tema eksklusif pakai Tailwind/CSS murni?
+4. **Theme versioning:** Satu tenant bisa pin ke versi tema lama saat contract breaking change?

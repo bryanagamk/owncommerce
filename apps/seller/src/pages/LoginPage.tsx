@@ -2,7 +2,7 @@ import { AuthLayout } from '@owncommerce/ui';
 import { Button, Form, Input, Typography, message } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { merchantApi } from '../lib/api';
-import { saveAuth } from '../lib/auth';
+import { completeOnboarding, saveAuth } from '../lib/auth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -12,6 +12,7 @@ export default function LoginPage() {
     try {
       const result = await merchantApi.login(values);
       saveAuth(result.tokens.access_token, result.tokens.refresh_token, result.user.name);
+      completeOnboarding();
       message.success('Login berhasil');
       navigate('/');
     } catch (e) {

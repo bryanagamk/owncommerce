@@ -55,6 +55,9 @@ export function AppLayout({ brand, navItems, userName, onLogout }: AppLayoutProp
         trigger={null}
         collapsible
         collapsed={collapsed}
+        collapsedWidth={0}
+        breakpoint="lg"
+        onBreakpoint={(broken) => setCollapsed(broken)}
         width={240}
         style={{
           borderRight: '1px solid #F0F0F0',
@@ -112,7 +115,7 @@ export function AppLayout({ brand, navItems, userName, onLogout }: AppLayoutProp
             </div>
           </Dropdown>
         </Header>
-        <Content style={{ margin: 24, minHeight: 280 }}>
+        <Content style={{ margin: '16px 12px', minHeight: 280 }}>
           <Outlet />
         </Content>
       </Layout>

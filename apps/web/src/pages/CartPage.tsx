@@ -1,4 +1,5 @@
 import type { CartView } from '@owncommerce/types';
+import { EmptyState } from '@owncommerce/ui';
 import { Button, Card, InputNumber, Table, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -39,8 +40,16 @@ export default function CartPage() {
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 16px' }}>
       <Typography.Title level={3}>Keranjang</Typography.Title>
       {cart.items.length === 0 ? (
-        <Card bordered style={{ borderColor: '#F0F0F0', textAlign: 'center', padding: 48 }}>
-          <Typography.Text type="secondary">Keranjang kosong</Typography.Text>
+        <Card bordered style={{ borderColor: '#F0F0F0', padding: 24 }}>
+          <EmptyState
+            title="Keranjang kosong"
+            description="Yuk, tambahkan produk favorit Anda"
+            action={
+              <Button type="primary" onClick={() => navigate('/products')}>
+                Lihat Katalog
+              </Button>
+            }
+          />
         </Card>
       ) : (
         <>

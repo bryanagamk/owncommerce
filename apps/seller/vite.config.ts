@@ -14,5 +14,9 @@ export default defineConfig({
   server: {
     port: 5173,
     fs: { allow: ['../..'] },
+    proxy: {
+      '/v1': { target: 'http://localhost:8080', changeOrigin: true },
+      '/files': { target: 'http://localhost:8080', changeOrigin: true },
+    },
   },
 });

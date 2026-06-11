@@ -1,4 +1,5 @@
 import type {
+  Address,
   CartView,
   Category,
   Customer,
@@ -62,6 +63,35 @@ export function createStorefrontApi(baseUrl: string, ctx: StorefrontContext) {
       }),
 
     me: () => request<Customer>(baseUrl, '/v1/storefront/me', opts()),
+
+    updateMe: (body: { name?: string; phone?: string }) =>
+      request<Customer>(baseUrl, '/v1/storefront/me', {
+        method: 'PATCH',
+        ...opts(),
+        body,
+      }),
+
+    listAddresses: () => request<Address[]>(baseUrl, '/v1/storefront/addresses', opts()),
+
+    createAddress: (body: Omit<Address, 'id'>) =>
+      request<Address>(baseUrl, '/v1/storefront/addresses', {
+        method: 'POST',
+        ...opts(),
+        body,
+      }),
+
+    updateAddress: (id: string, body: Omit<Address, 'id'>) =>
+      request<Address>(baseUrl, `/v1/storefront/addresses/${id}`, {
+        method: 'PATCH',
+        ...opts(),
+        body,
+      }),
+
+    deleteAddress: (id: string) =>
+      request<void>(baseUrl, `/v1/storefront/addresses/${id}`, {
+        method: 'DELETE',
+        ...opts(),
+      }),
 
     getCart: () => request<CartView>(baseUrl, '/v1/storefront/cart', opts()),
 

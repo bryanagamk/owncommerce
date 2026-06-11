@@ -19,7 +19,7 @@ export default function RegisterPage() {
       const result = await merchantApi.register(values);
       saveAuth(result.tokens.access_token, result.tokens.refresh_token, result.user.name);
       message.success('Registrasi berhasil');
-      navigate('/');
+      navigate('/onboarding');
     } catch (e) {
       message.error(e instanceof Error ? e.message : 'Registrasi gagal');
     }
