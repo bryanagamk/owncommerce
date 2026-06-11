@@ -142,7 +142,7 @@ Prioritas implementasi:
 
 **Tujuan:** Backend siap — merchant bisa daftar, tambah produk, customer bisa beli, merchant kelola pesanan via API.
 
-> **Status:** Backend API selesai. Lanjut ke Phase 1B (frontend).
+> **Status:** Phase 1A (API) + Phase 1B (frontend MVP) selesai. Lanjut polish atau Phase 2A.
 
 ### 1.1 Merchant Onboarding Flow
 
@@ -171,7 +171,7 @@ Daftar → Buat Tenant → Pilih Subdomain → Setup Toko Dasar → Dashboard
 - [x] Product catalog + filter kategori
 - [x] Product detail (by slug)
 - [x] Search produk (ILIKE)
-- [ ] Responsive mobile-first → Phase 1B (`web`)
+- [x] Responsive mobile-first (dasar) → Phase 1B (`web`) — polish lanjut
 
 ### 1.4 Cart & Checkout
 
@@ -180,7 +180,7 @@ Daftar → Buat Tenant → Pilih Subdomain → Setup Toko Dasar → Dashboard
 - [x] Order creation (status: `pending_payment`)
 - [x] Integrasi Midtrans Snap API
 - [x] Webhook handler Midtrans
-- [ ] Halaman payment success / failed → Phase 1B (`web`)
+- [x] Halaman payment success / failed → Phase 1B (`web`)
 - [x] Order detail API (konfirmasi via API)
 
 ### 1.5 Order Management (Merchant)
@@ -230,11 +230,12 @@ Setup fondasi UI di `packages/ui` sebelum halaman aplikasi.
 
 **Deliverables:**
 
-- [ ] `packages/ui` — Ant Design `ConfigProvider` + custom theme token
-- [ ] `packages/ui` — `AppLayout` (sidebar + header + content) seperti referensi
-- [ ] `packages/ui` — shared components: `PageHeader`, `EmptyState`, `Loading`
-- [ ] `packages/sdk` — typed API client (auth, merchant, storefront)
-- [ ] `packages/types` — shared TypeScript interfaces dari API response
+- [x] `packages/ui` — Ant Design `ConfigProvider` + custom theme token
+- [x] `packages/ui` — `AppLayout` (sidebar + header + content) seperti referensi
+- [x] `packages/ui` — shared components: `PageHeader`, `Loading`
+- [ ] `packages/ui` — `EmptyState` component
+- [x] `packages/sdk` — typed API client (auth, merchant, storefront)
+- [x] `packages/types` — shared TypeScript interfaces dari API response
 
 ### 1B.1 Merchant Dashboard (`apps/seller`)
 
@@ -253,12 +254,12 @@ Layout: sidebar kiri + content area kanan (mirip referensi Sell Bridge).
 
 **Deliverables:**
 
-- [ ] Setup Vite + React + TypeScript + Ant Design
-- [ ] Auth flow (login, register, token refresh, protected routes)
-- [ ] Sidebar navigation + layout responsif (collapse di mobile)
-- [ ] CRUD kategori & produk
-- [ ] Upload gambar produk
-- [ ] Daftar & kelola pesanan
+- [x] Setup Vite + React + TypeScript + Ant Design
+- [x] Auth flow (login, register, token refresh, protected routes)
+- [x] Sidebar navigation + layout responsif (collapse di mobile)
+- [x] CRUD kategori & produk
+- [x] Upload gambar produk
+- [x] Daftar & kelola pesanan
 - [ ] Onboarding wizard setelah register
 
 ### 1B.2 Storefront (`apps/web`)
@@ -280,21 +281,22 @@ Layout: header toko + content — tetap clean putih, fokus produk (bukan sidebar
 
 **Deliverables:**
 
-- [ ] Setup Vite + React + TypeScript + Ant Design
-- [ ] Tenant resolution (`X-Tenant-Slug` di dev / subdomain di prod)
-- [ ] Guest cart (`X-Cart-Session` di localStorage)
-- [ ] Catalog, search, product detail
-- [ ] Cart & checkout flow
-- [ ] Integrasi Midtrans Snap (client-side)
-- [ ] Customer account (login, orders, profile)
-- [ ] Responsive mobile-first
+- [x] Setup Vite + React + TypeScript + Ant Design
+- [x] Tenant resolution (`X-Tenant-Slug` di dev / subdomain di prod)
+- [x] Guest cart (`X-Cart-Session` di localStorage)
+- [x] Catalog, search, product detail
+- [x] Cart & checkout flow
+- [x] Integrasi Midtrans Snap (client-side)
+- [x] Customer account (login, orders)
+- [ ] Customer profile & alamat (`/account/profile`)
+- [ ] Responsive mobile-first (polish)
 
 ### 1B.3 Dev & Integrasi
 
-- [ ] Env per app: `VITE_API_URL=http://localhost:8080`
+- [x] Env per app: `VITE_API_URL=http://localhost:8080`
 - [ ] Proxy dev Vite → API (opsional)
-- [ ] Script monorepo: `npm run dev:seller`, `npm run dev:web`
-- [ ] Manual testing UI end-to-end
+- [x] Script monorepo: `npm run dev:seller`, `npm run dev:web`
+- [x] Manual testing UI end-to-end (`docs/testing-fase1b.md`)
 
 **Phase 1B Exit Criteria (MVP lengkap):**
 
@@ -302,7 +304,198 @@ Layout: header toko + content — tetap clean putih, fokus produk (bukan sidebar
 
 ---
 
-## Phase 2A: SaaS Platform Layer — API (Minggu 19–24)
+## Storefront Theme System (Arsitektur)
+
+**Tujuan:** Setiap toko bisa punya tampilan storefront berbeda — dari preset publik hingga tema custom eksklusif per client.
+
+**Model:** Mirip Shopify Themes — satu platform, banyak template React. Platform assign tema ke tenant; tim dev bisa buat paket tema baru untuk client tertentu.
+
+### Konsep
+
+| Istilah | Arti |
+|---|---|
+| **Theme** | Paket React (`@owncommerce/theme-*`) berisi layout + halaman storefront |
+| **Theme Contract** | Interface wajib yang setiap tema implementasi (routes, pages, settings schema) |
+| **Theme Settings** | Konfigurasi per tenant (warna, font, banner) — disimpan JSON di DB |
+| **Public theme** | Tersedia untuk semua merchant (gallery) |
+| **Exclusive theme** | Hanya untuk tenant tertentu — untuk client premium / custom project |
+
+### Struktur Monorepo (target)
+
+```
+packages/
+├── theme-contract/          → Types, ThemeProvider, hooks wajib (useStore, useThemeSettings)
+├── theme-default/           → Tema MVP saat ini (refactor dari apps/web/src/pages)
+├── theme-minimal/           → Contoh preset kedua
+└── themes/                  → Tema eksklusif per client
+    └── tokobunga-premium/     → Custom untuk client X
+
+apps/
+└── web/                     → Shell tipis: resolve tenant + load tema + routing
+```
+
+`apps/seller` dan `apps/superadmin` **tidak** ikut theme system — hanya `apps/web` (storefront customer).
+
+### Theme Contract (interface wajib)
+
+Setiap tema export object standar:
+
+```typescript
+// packages/theme-contract/src/index.ts
+export interface StorefrontTheme {
+  id: string;                    // "default" | "minimal" | "tokobunga-premium"
+  name: string;
+  version: string;
+  routes: RouteObject[];         // React Router routes tema ini
+  settingsSchema?: ThemeSettingsSchema;  // field yang merchant boleh edit
+  defaultSettings?: ThemeSettings;
+}
+
+export interface ThemeContext {
+  store: Tenant;                 // dari API bootstrap
+  settings: ThemeSettings;       // merge default + tenant override
+  api: StorefrontApi;            // @owncommerce/sdk
+}
+```
+
+Halaman wajib per tema (minimal parity):
+
+- Home, Products, Product Detail, Cart, Checkout, Payment, Payment Success/Failed
+- Account Login, Register, Orders
+
+Tema **boleh** beda total (layout, komponen, animasi) selama route path sama dan commerce flow tetap jalan.
+
+### Runtime Flow
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant WebShell as apps/web
+    participant API
+    participant Theme as theme package
+
+    Browser->>WebShell: GET tokobunga.owncommerce.id
+    WebShell->>WebShell: resolve tenant dari hostname
+    WebShell->>API: GET /v1/storefront/bootstrap
+    API-->>WebShell: store + theme_id + theme_settings
+    WebShell->>Theme: dynamic import theme registry[theme_id]
+    Theme-->>Browser: render storefront unik tenant ini
+```
+
+**Penting:** Tenant di-resolve **runtime dari hostname**, bukan `VITE_TENANT_SLUG` build-time.
+
+### Database
+
+```sql
+-- Katalog tema (di-manage platform / super admin)
+themes (
+  id            UUID PK,
+  slug          VARCHAR UNIQUE,     -- "default", "minimal", "tokobunga-premium"
+  name          VARCHAR,
+  version       VARCHAR,
+  package_name  VARCHAR,            -- "@owncommerce/theme-default"
+  is_public     BOOLEAN DEFAULT true,
+  settings_schema JSONB,
+  preview_image_url VARCHAR,
+  created_at, updated_at
+)
+
+-- Assignment + override settings per tenant
+tenant_storefront (
+  tenant_id     UUID PK FK,
+  theme_id      UUID FK → themes,
+  settings      JSONB,              -- { "primaryColor": "#E91E63", "heroBanner": "/files/..." }
+  updated_at
+)
+```
+
+### API Baru
+
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| GET | `/v1/storefront/bootstrap` | Store + theme slug + settings (dipanggil sekali saat load) |
+| GET | `/v1/merchant/store/theme` | Merchant lihat tema aktif |
+| PATCH | `/v1/merchant/store/theme` | Merchant ubah settings (dalam schema tema) |
+| GET | `/v1/admin/themes` | Super admin: daftar tema |
+| POST | `/v1/admin/themes` | Super admin: register tema baru |
+| PATCH | `/v1/admin/tenants/:id/theme` | Super admin: assign tema eksklusif ke tenant |
+
+### Cara Bikin Tema untuk Client Baru
+
+Workflow tim platform:
+
+1. **Scaffold** — `packages/themes/{client-slug}/` dari template `theme-default`
+2. **Develop** — custom layout, typography, hero, product grid, dll.
+3. **Register** — insert ke tabel `themes` (`is_public = false`)
+4. **Assign** — super admin assign `theme_id` ke `tenant_id` client
+5. **Deploy** — build `apps/web` (semua tema di-bundle dengan code-splitting / lazy import)
+6. **(Opsional)** Merchant edit settings terbatas lewat seller dashboard (warna, banner)
+
+Client tidak perlu deploy terpisah — satu `apps/web` production serve semua tema.
+
+### Build Strategy
+
+- **Lazy import registry** di `apps/web` — setiap tema = chunk terpisah (Vite dynamic `import()`)
+- Semua tema dalam monorepo (satu repo) — paling sederhana untuk tim kecil
+- Tema eksklusif bisa folder `packages/themes/{client}/` — tidak mengotori tema publik
+
+```typescript
+// apps/web/src/theme-registry.ts
+const registry: Record<string, () => Promise<{ theme: StorefrontTheme }>> = {
+  default: () => import('@owncommerce/theme-default'),
+  minimal: () => import('@owncommerce/theme-minimal'),
+  'tokobunga-premium': () => import('@owncommerce/themes/tokobunga-premium'),
+};
+```
+
+### Feature Gate (subscription)
+
+| Paket | Tema |
+|---|---|
+| Trial / Starter | Pilih dari public themes (1–2 preset) |
+| Growth | Semua public themes + custom settings |
+| Enterprise | Exclusive custom theme oleh tim platform |
+
+Middleware: `RequireFeature("custom_theme")` untuk assign tema eksklusif.
+
+---
+
+## Phase 1C: Theme System Foundation (Minggu 19–22)
+
+**Tujuan:** Refactor storefront jadi theme-ready; satu tenant bisa pakai tema berbeda dari tenant lain.
+
+### 1C.1 Contract & Refactor
+
+- [ ] `packages/theme-contract` — types, `ThemeProvider`, hooks
+- [ ] Refactor `apps/web/src/pages/*` → `packages/theme-default`
+- [ ] `apps/web` jadi shell: bootstrap + theme loader + error fallback
+
+### 1C.2 Backend
+
+- [ ] Model `themes` + `tenant_storefront`
+- [ ] `GET /v1/storefront/bootstrap` (store + theme + settings)
+- [ ] Seed tema `default` untuk semua tenant existing
+- [ ] Runtime tenant resolve dari hostname di frontend (ganti `VITE_TENANT_SLUG`)
+
+### 1C.3 Admin & Merchant
+
+- [ ] Super admin: assign theme ke tenant (API dulu, UI di Phase 2B)
+- [ ] Merchant: preview tema aktif di settings (read-only dulu)
+- [ ] Merchant: edit theme settings (warna, banner) sesuai schema
+
+### 1C.4 Proof of Concept
+
+- [ ] `packages/theme-minimal` — preset kedua dengan layout berbeda (bukti sistem jalan)
+- [ ] `packages/themes/example-exclusive` — contoh tema eksklusif `is_public=false`
+- [ ] Manual test: 2 tenant, 2 tema berbeda, 1 domain masing-masing
+
+**Phase 1C Exit Criteria:**
+
+> `tokobunga.owncommerce.id` pakai tema A, `tokokue.owncommerce.id` pakai tema B — tampilan berbeda, commerce flow sama.
+
+---
+
+## Phase 2A: SaaS Platform Layer — API (Minggu 23–28)
 
 **Tujuan:** Platform siap monetisasi — subscription, billing, super admin.
 
@@ -426,8 +619,10 @@ Layout: header toko + content — tetap clean putih, fokus produk (bukan sidebar
 ### 3.7 Storefront Enhancement
 
 - [ ] SEO (meta tags, sitemap, structured data)
-- [ ] Theme dasar (2–3 preset)
-- [ ] Banner / hero management
+- [ ] Theme gallery UI (merchant pilih dari public themes)
+- [ ] Theme preview sebelum publish
+- [ ] Banner / hero management (via theme settings)
+- [ ] Theme marketplace internal (katalog tema platform)
 
 ---
 
@@ -860,15 +1055,18 @@ promotions, promotion_usages, notifications, shipments
 - [x] Commerce API (produk, cart, order, Midtrans)
 - [x] Manual testing API (`docs/testing-fase0.md`, `docs/testing-fase1.md`)
 
-### Berikutnya (Phase 1B — Frontend)
+### Selesai (Phase 1B — Frontend MVP)
 
-1. **Setup `packages/ui`** — Ant Design theme (clean white) + `AppLayout`
-2. **Setup `packages/sdk`** — typed API client
-3. **Setup `apps/seller`** — Vite + React + login + sidebar layout
-4. **Seller pages** — products, categories, orders, settings
-5. **Setup `apps/web`** — Vite + React + tenant resolution
-6. **Web pages** — catalog, cart, checkout, Midtrans Snap, account
-7. **Manual testing UI** — end-to-end flow via browser
+- [x] `packages/ui`, `packages/sdk`, `packages/types`
+- [x] `apps/seller` — dashboard merchant lengkap
+- [x] `apps/web` — storefront catalog, cart, checkout, Midtrans, account
+- [x] Manual testing UI (`docs/testing-fase1b.md`)
+
+### Berikutnya
+
+1. **Phase 1C** — Theme system (refactor `theme-default`, bootstrap API, multi-theme)
+2. **Phase 1B polish** — onboarding wizard, customer profile
+3. **Phase 2A** — subscription & billing API
 
 ---
 

@@ -7,6 +7,10 @@
   ],
   "scripts": {
     "dev:api": "make -C apps/api dev",
+    "dev:seller": "npm run dev -w @owncommerce/seller",
+    "dev:web": "npm run dev -w @owncommerce/web",
+    "build:seller": "npm run build -w @owncommerce/seller",
+    "build:web": "npm run build -w @owncommerce/web",
     "dev:infra": "docker compose -f infra/docker/docker-compose.dev.yml up -d",
     "dev:infra:down": "docker compose -f infra/docker/docker-compose.dev.yml down",
     "dev:infra:logs": "docker compose -f infra/docker/docker-compose.dev.yml logs -f"

@@ -6,7 +6,7 @@ Platform WebCommerce SaaS multi-tenant untuk UMKM Indonesia.
 
 - Go 1.23+
 - Docker & Docker Compose (PostgreSQL + Redis)
-- Node.js 20+ (untuk monorepo frontend nanti)
+- Node.js 20+ (untuk frontend monorepo)
 
 ## Quick Start (Local Dev)
 
@@ -34,7 +34,22 @@ make api-dev
 
 API tersedia di `http://localhost:8080`
 
-### 4. Health Check
+### 4. Jalankan Frontend (Phase 1B)
+
+```bash
+npm install
+
+# Merchant dashboard → http://localhost:5173
+cp apps/seller/.env.example apps/seller/.env
+npm run dev:seller
+
+# Storefront customer → http://localhost:5174
+cp apps/web/.env.example apps/web/.env
+# Isi VITE_MIDTRANS_CLIENT_KEY di apps/web/.env
+npm run dev:web
+```
+
+### 5. Health Check
 
 ```bash
 curl http://localhost:8080/health
@@ -83,7 +98,11 @@ curl http://localhost:8080/v1/store \
 
 ```
 apps/api/          → Backend Go (Fiber + GORM)
-packages/          → Shared packages (placeholder)
+apps/seller/       → Merchant dashboard (React + Vite)
+apps/web/          → Customer storefront (React + Vite)
+packages/ui/       → Ant Design theme & shared layout
+packages/sdk/      → Typed API client
+packages/types/    → Shared TypeScript types
 infra/docker/      → Docker Compose dev
 storage/           → Local file storage
 docs/              → Dokumentasi teknis & testing
@@ -93,7 +112,8 @@ prompt/            → Dokumentasi produk & rencana
 ## Manual Testing
 
 - [docs/testing-fase0.md](./docs/testing-fase0.md) — Auth, Tenant, IAM, Audit
-- [docs/testing-fase1.md](./docs/testing-fase1.md) — Produk, Cart, Checkout, Midtrans, Order
+- [docs/testing-fase1.md](./docs/testing-fase1.md) — Produk, Cart, Checkout, Midtrans, Order (API)
+- [docs/testing-fase1b.md](./docs/testing-fase1b.md) — UI end-to-end seller + web
 
 ## Perintah Berguna
 
@@ -103,6 +123,10 @@ make infra-down      # Stop infra Docker
 make api-dev         # Run API
 make api-build       # Build API binary
 make api-test        # Run Go tests
+npm run dev:seller   # Merchant dashboard (port 5173)
+npm run dev:web      # Storefront (port 5174)
+npm run build:seller # Production build seller
+npm run build:web    # Production build web
 ```
 
 ## Troubleshooting
